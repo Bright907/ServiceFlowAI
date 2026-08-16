@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -26,6 +27,7 @@ function App() {
           />
           <Route path="/widget/:contractorId" element={<WidgetPage />} />
         </Routes>
+        <SpeedInsights />
         <Analytics />
       </BrowserRouter>
     </AuthProvider>
