@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
@@ -25,6 +26,7 @@ function App() {
           />
           <Route path="/widget/:contractorId" element={<WidgetPage />} />
         </Routes>
+        <SpeedInsights />
       </BrowserRouter>
     </AuthProvider>
   );
