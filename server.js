@@ -30,6 +30,20 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use('/public', express.static(path.join(__dirname,'public')));
 
+// Stripe setup (reads keys from environment)
+let stripe = null;
+if(process.env.STRIPE_SECRET_KEY){
+  try{
+    const Stripe = require('stripe');
+    stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+    console.log('Stripe initialized');
+  }catch(e){
+    console.warn('Stripe module error', e.message);
+  }
+} else {
+  console.log('Stripe not configured — set STRIPE_SECRET_KEY to enable billing');
+}
+
 // Landing
 app.get('/', (req,res)=>{
   res.render('index');
@@ -54,7 +68,8 @@ app.post('/signup', (req,res)=>{
       perUnit: Number(perUnit) || 50,
       travelFee: Number(travelFee) || 10
     },
-    services: []
+    services: [],
+    subscription: { status: 'inactive', subscriptionId: null }
   };
   // Add some default services per trade
   if(trade === 'Plumber') tenant.services = [
@@ -109,6 +124,84 @@ app.get('/api/leads/:tenantId', (req,res)=>{
   const db = loadDB();
   const leads = db.leads.filter(l=>l.tenantId === tenantId).reverse();
   res.json({leads});
+});
+
+// Stripe: create Checkout Session
+app.post('/create-checkout-session', async (req,res)=>{
+  if(!stripe) return res.status(500).json({error:'Stripe not configured'});
+  const {tenantId} = req.body;
+  const db = loadDB();
+  const tenant = db.tenants.find(t=>t.id===tenantId);
+  if(!tenant) return res.status(404).json({error:'Tenant not found'});
+
+  try{
+    const host = req.protocol + '://' + req.get('host');
+    // For prototype: single monthly subscription amount ($49.00)
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: `${tenant.businessName} - ServiceFlowAI subscription (one-time prototype)` },
+          unit_amount: 4900
+        },
+        quantity: 1
+      }],
+      success_url: host + '/dashboard/' + tenantId + '?checkout=success',
+      cancel_url: host + '/dashboard/' + tenantId + '?checkout=cancel',
+      metadata: { tenantId }
+    });
+
+    res.json({url: session.url});
+  }catch(err){
+    console.error('Stripe create session error', err);
+    res.status(500).json({error:err.message});
+  }
+});
+
+// Stripe webhook endpoint — uses raw body for signature verification
+app.post('/stripe-webhook', bodyParser.raw({type: 'application/json'}), (req,res)=>{
+  if(!stripe){
+    console.warn('Received webhook but Stripe not configured');
+    return res.status(400).send('Stripe not configured');
+  }
+  const sig = req.headers['stripe-signature'];
+  let event;
+  if(process.env.STRIPE_WEBHOOK_SECRET){
+    try{
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    }catch(err){
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  }else{
+    try{
+      event = JSON.parse(req.body.toString());
+    }catch(e){
+      console.error('Invalid webhook JSON', e.message);
+      return res.status(400).send('Invalid payload');
+    }
+  }
+
+  // Handle the event types we care about
+  if(event.type === 'checkout.session.completed'){
+    const session = event.data.object;
+    const tenantId = session.metadata && session.metadata.tenantId;
+    if(tenantId){
+      const db = loadDB();
+      const tenant = db.tenants.find(t=>t.id===tenantId);
+      if(tenant){
+        tenant.subscription = tenant.subscription || {};
+        tenant.subscription.status = 'active';
+        tenant.subscription.checkoutSessionId = session.id;
+        saveDB(db);
+        console.log('Marked tenant', tenantId, 'as active subscription');
+      }
+    }
+  }
+
+  res.json({received: true});
 });
 
 // Embed script that writes an iframe for the widget

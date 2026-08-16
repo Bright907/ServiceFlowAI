@@ -25,6 +25,17 @@
       </section>
 
       <section>
+        <h2>Billing</h2>
+        <p>Subscription status: <strong><%= tenant.subscription && tenant.subscription.status ? tenant.subscription.status : 'inactive' %></strong></p>
+        <% if (typeof process !== 'undefined' && process.env && process.env.STRIPE_SECRET_KEY) { %>
+          <p>Stripe appears configured on the server.</p>
+        <% } else { %>
+          <p><em>Stripe not configured. To enable billing add STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET to the environment.</em></p>
+        <% } %>
+        <button class="button" id="subscribeBtn" onclick="startCheckout()">Subscribe — $49 (prototype)</button>
+      </section>
+
+      <section>
         <h2>Embed</h2>
         <p>Copy this snippet to place the widget on your site:</p>
         <pre id="snippet"><code>&lt;script src="<%= 'https://' + (typeof process !== 'undefined' && process.env.HOSTNAME || location.host) + '/embed.js?tenant=' + tenant.id %>" async&gt;&lt;/script&gt;</code></pre>
@@ -79,6 +90,25 @@
         }).then(r=>r.json()).then(j=>{
           if(j.ok) alert('Saved');
           else alert('Error');
+        });
+      }
+
+      function startCheckout(){
+        document.getElementById('subscribeBtn').disabled = true;
+        fetch('/create-checkout-session',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ tenantId: '<%= tenant.id %>' })
+        }).then(r=>r.json()).then(j=>{
+          if(j.url){
+            window.location = j.url;
+          }else{
+            alert('Error creating checkout session: ' + (j.error || 'unknown'));
+            document.getElementById('subscribeBtn').disabled = false;
+          }
+        }).catch(err=>{
+          alert('Network error');
+          document.getElementById('subscribeBtn').disabled = false;
         });
       }
     </script>
