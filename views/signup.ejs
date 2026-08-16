@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign up — ServiceFlowAI</title>
+    <link rel="stylesheet" href="/public/style.css" />
+  </head>
+  <body>
+    <div class="container narrow">
+      <h1>Create your quote widget</h1>
+      <form method="post" action="/signup">
+        <label>Business name<br/><input name="businessName" required></label>
+        <label>Email<br/><input name="email" type="email" required></label>
+        <label>Trade<br/>
+          <select name="trade">
+            <option>Plumber</option>
+            <option>HVAC</option>
+            <option>Roofer</option>
+          </select>
+        </label>
+        <h3>Pricing variables</h3>
+        <label>Base price ($)<br/><input name="basePrice" type="number" value="150"></label>
+        <label>Per unit price ($)<br/><input name="perUnit" type="number" value="50"></label>
+        <label>Travel fee per mile ($)<br/><input name="travelFee" type="number" value="10"></label>
+        <div style="margin-top:12px"><button class="button" type="submit">Create account & open dashboard</button></div>
+      </form>
+
+      <p><a href="/">Back to home</a></p>
+    </div>
+  </body>
+</html>

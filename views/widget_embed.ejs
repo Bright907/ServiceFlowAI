@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Widget — <%= tenant.businessName %></title>
+    <link rel="stylesheet" href="/public/style.css" />
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;padding:12px;background:#fff}
+      .widget{max-width:760px;margin:0 auto}
+      .estimate{background:#f7fbff;padding:10px;border-radius:6px;margin-top:8px}
+    </style>
+  </head>
+  <body>
+    <div class="widget">
+      <h2><%= tenant.businessName %> — Get an estimate</h2>
+      <p>Service: <strong><%= tenant.trade %></strong></p>
+
+      <form id="calc">
+        <label>Your name<br/><input name="name" required></label>
+        <label>Phone or email<br/><input name="contact" required></label>
+        <label>Address<br/><input name="address" required></label>
+        <label>Choose service<br/>
+          <select name="service" id="serviceSelect">
+            <% tenant.services.forEach(function(s){ %>
+              <option value="<%= s.id %>" data-units="<%= s.defaultUnits %>"><%= s.name %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Estimated units (<span id="unitName">units</span>)<br/><input name="units" id="unitsInput" type="number" value="1"></label>
+
+        <div class="estimate">
+          <strong>Estimate:</strong> <span id="estimate">—</span>
+        </div>
+
+        <label>Message (optional)<br/><textarea name="message"></textarea></label>
+        <button type="button" onclick="book()" class="button">Book Inspection</button>
+      </form>
+
+      <script>
+        var pricing = <%- JSON.stringify(tenant.pricing) %>;
+        var services = <%- JSON.stringify(tenant.services) %>;
+        var tenantId = '<%= tenant.id %>';
+
+        var serviceSelect = document.getElementById('serviceSelect');
+        var unitsInput = document.getElementById('unitsInput');
+        var unitName = document.getElementById('unitName');
+        var estimateEl = document.getElementById('estimate');
+
+        function compute(){
+          var serviceId = serviceSelect.value;
+          var svc = services.find(s=>s.id===serviceId) || services[0];
+          var units = Number(unitsInput.value) || svc.defaultUnits || 1;
+          unitName.textContent = svc.unitName || 'units';
+          // rough distance estimate from address length
+          var address = document.querySelector('input[name="address"]').value || '';
+          var distance = Math.min(30, Math.max(1, Math.round(address.length % 12)));
+          var est = pricing.basePrice + pricing.perUnit * units + pricing.travelFee * distance;
+          estimateEl.textContent = '$' + est.toFixed(2);
+          return {est, units, svc};
+        }
+
+        serviceSelect.addEventListener('change', function(){
+          var opt = serviceSelect.selectedOptions[0];
+          unitsInput.value = opt.getAttribute('data-units') || 1;
+          compute();
+        });
+        unitsInput.addEventListener('input', compute);
+        document.querySelector('input[name="address"]').addEventListener('input', compute);
+
+        compute();
+
+        function book(){
+          var name = document.querySelector('input[name="name"]').value;
+          var contact = document.querySelector('input[name="contact"]').value;
+          var address = document.querySelector('input[name="address"]').value;
+          var message = document.querySelector('textarea[name="message"]').value;
+          var computed = compute();
+          var service = computed.svc.name;
+          var units = computed.units;
+          var estimate = computed.est;
+          var payload = {
+            name: name,
+            email: contact,
+            phone: contact,
+            address: address,
+            service: service,
+            units: units,
+            estimate: estimate,
+            message: message
+          };
+          fetch('/api/leads/' + tenantId, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+          }).then(r=>r.json()).then(j=>{
+            if(j.ok){
+              alert('Thanks — we captured your request. We will contact you soon.');
+            }else alert('Error sending lead');
+          });
+        }
+      </script>
+    </div>
+  </body>
+</html>

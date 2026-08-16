@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title><%= tenant.businessName %> — Dashboard</title>
+    <link rel="stylesheet" href="/public/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><%= tenant.businessName %> — Dashboard</h1>
+        <p>Trade: <strong><%= tenant.trade %></strong></p>
+      </header>
+
+      <section>
+        <h2>Pricing configuration</h2>
+        <form id="pricingForm">
+          <label>Business name<br/><input name="businessName" value="<%= tenant.businessName %>"></label>
+          <label>Base price ($)<br/><input name="basePrice" type="number" value="<%= tenant.pricing.basePrice %>"></label>
+          <label>Per unit ($)<br/><input name="perUnit" type="number" value="<%= tenant.pricing.perUnit %>"></label>
+          <label>Travel fee per mile ($)<br/><input name="travelFee" type="number" value="<%= tenant.pricing.travelFee %>"></label>
+          <button class="button" type="button" onclick="savePricing()">Save</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Embed</h2>
+        <p>Copy this snippet to place the widget on your site:</p>
+        <pre id="snippet"><code>&lt;script src="<%= 'https://' + (typeof process !== 'undefined' && process.env.HOSTNAME || location.host) + '/embed.js?tenant=' + tenant.id %>" async&gt;&lt;/script&gt;</code></pre>
+        <p>Or use the plain endpoint (demo):</p>
+        <pre><code><%= requestProtocol = 'https://'; %><%= requestProtocol + (typeof process !== 'undefined' && process.env.HOSTNAME || 'your-domain.com') + '/embed.js?tenant=' + tenant.id %></code></pre>
+      </section>
+
+      <section>
+        <h2>Live preview</h2>
+        <iframe src="/widget/<%= tenant.id %>" style="width:100%;height:520px;border:1px solid #ddd;border-radius:6px"></iframe>
+      </section>
+
+      <section>
+        <h2>Leads</h2>
+        <table class="leads">
+          <thead><tr><th>When</th><th>Name</th><th>Service</th><th>Estimate</th><th>Contact</th></tr></thead>
+          <tbody>
+            <% if(leads.length===0) { %>
+              <tr><td colspan="5">No leads yet — try the preview widget.</td></tr>
+            <% } %>
+            <% leads.forEach(function(l){ %>
+              <tr>
+                <td><%= new Date(l.createdAt).toLocaleString() %></td>
+                <td><%= l.name %></td>
+                <td><%= l.service %> (<%= l.units %>)</td>
+                <td>$<%= l.estimate.toFixed(2) %></td>
+                <td><%= l.email %> / <%= l.phone %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+
+      <footer>
+        <p><a href="/">Home</a></p>
+      </footer>
+    </div>
+
+    <script>
+      function savePricing(){
+        var form = document.getElementById('pricingForm');
+        var data = {
+          businessName: form.businessName.value,
+          basePrice: form.basePrice.value,
+          perUnit: form.perUnit.value,
+          travelFee: form.travelFee.value
+        };
+        fetch('/api/tenant/<%= tenant.id %>',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        }).then(r=>r.json()).then(j=>{
+          if(j.ok) alert('Saved');
+          else alert('Error');
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+body{font-family:Inter, Roboto, Arial, Helvetica, sans-serif;margin:0;padding:20px;background:#f5f7fb;color:#222}
+.container{max-width:980px;margin:0 auto;background:#fff;padding:18px;border-radius:8px}
+.container.narrow{max-width:640px}
+header h1{margin:0}
+header p{color:#555}
+label{display:block;margin:8px 0}
+input,select,textarea{width:100%;padding:8px;border:1px solid #ddd;border-radius:4px}
+.button{display:inline-block;background:#2b82ff;color:white;padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
+.leads{width:100%;border-collapse:collapse;margin-top:8px}
+.leads th, .leads td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+pre{background:#f3f4f6;padding:8px;border-radius:6px;overflow:auto}
