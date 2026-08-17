@@ -19,13 +19,14 @@ export default function WidgetPage() {
       .select('*')
       .eq('id', contractorId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
-        if (data) {
-          setContractor(data as Contractor);
-        } else {
+        if (error || !data) {
           setError(true);
+          setLoading(false);
+          return;
         }
+        setContractor(data as Contractor);
         setLoading(false);
       });
     return () => {

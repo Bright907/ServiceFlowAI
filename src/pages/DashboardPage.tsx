@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -25,8 +26,13 @@ export default function DashboardPage() {
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
+        if (error) {
+          setLoadError('Failed to load your profile. Please refresh the page.');
+          setLoading(false);
+          return;
+        }
         if (data) {
           setContractor(data as Contractor);
           setPricing((data as Contractor).pricing);
@@ -37,6 +43,20 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [user]);
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
+        <p className="text-sm font-medium text-slate-600">{loadError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+        >
+          Reload page
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -88,7 +108,7 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 mb-5">
             Every homeowner who submits the booking form lands here.
           </p>
-          <LeadsTable contractorId={contractor.id} refreshKey={refreshKey} />
+          <LeadsTable contractor={contractor} refreshKey={refreshKey} />
         </div>
       </div>
     </div>

@@ -1,6 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { SpeedInsights } from '@vercel/speed-insights/react';
-import { Analytics } from '@vercel/analytics/react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
@@ -26,9 +24,19 @@ function App() {
             }
           />
           <Route path="/widget/:contractorId" element={<WidgetPage />} />
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
+                <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
+                <p className="text-sm text-slate-500 mb-6">This page doesn't exist.</p>
+                <Link to="/" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+                  Back to home
+                </Link>
+              </div>
+            }
+          />
         </Routes>
-        <SpeedInsights />
-        <Analytics />
       </BrowserRouter>
     </AuthProvider>
   );
